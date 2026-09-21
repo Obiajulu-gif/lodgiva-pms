@@ -1,4 +1,4 @@
-// Thin client for Kamra's whitelisted API. Session-cookie auth via
+// Thin client for Lodgiva's whitelisted API. Session-cookie auth via
 // Frappe's /api/method/login; unauthenticated calls surface as 401/403
 // and the shell shows the login screen.
 
@@ -41,7 +41,7 @@ async function doFetch(path: string, init?: RequestInit) {
       console.warn(`[kamra] network failure calling ${path}`, err)
       window.dispatchEvent(new Event("kamra:offline"))
       throw Object.assign(
-        new Error("Can't reach Kamra right now. Check your connection — we'll reconnect automatically."),
+        new Error("Can't reach Lodgiva right now. Check your connection — we'll reconnect automatically."),
         { network: true },
       )
     }
@@ -123,10 +123,10 @@ export async function uploadFile(
   return url
 }
 
-/** Upload a file to a custom Kamra endpoint (multipart), returning its result.
+/** Upload a file to a custom Lodgiva endpoint (multipart), returning its result.
  *  Unlike uploadFile (Frappe's built-in upload_file, which authorises against
  *  the target doctype's own perms), this posts to a @require_roles endpoint that
- *  handles the File itself — the pattern the rest of Kamra uses. */
+ *  handles the File itself — the pattern the rest of Lodgiva uses. */
 export async function uploadTo(
   method: string,
   file: File,
@@ -176,7 +176,7 @@ export interface WhoAmI {
 
 export const whoami = () => call<WhoAmI>("kamra.api.whoami")
 
-/** Which parts of Kamra this property runs. Empty on the server means
+/** Which parts of Lodgiva this property runs. Empty on the server means
  *  "all of them", so an existing property is untouched. */
 export const enabledModules = () =>
   call<string[]>("kamra.api.enabled_modules", {
@@ -301,7 +301,7 @@ export interface Quote {
 
 export const DEMO_PROPERTY = "Kamra Demo Palace"
 
-// Every Kamra site hosts exactly one Property. The public booking engine
+// Every Lodgiva site hosts exactly one Property. The public booking engine
 // (/book) has no logged-in session to read a chosen property from, so it
 // asks the site which one to show instead of assuming the demo property.
 export const getDefaultProperty = () =>

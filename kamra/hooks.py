@@ -19,9 +19,9 @@ app_color = "#1E7B4F"
 add_to_apps_screen = [
 	{
 		"name": "kamra",
-		"logo": "/assets/kamra/kamra-mark.svg",
-		"title": "Kamra",
-		"route": "/kamra",
+		"logo": "/assets/kamra/lodgiva-mark.svg",
+		"title": "Lodgiva",
+		"route": "/lodgiva",
 	}
 ]
 
@@ -71,17 +71,23 @@ kamra_localization = {
 # page (kamra/www/kamra.py) serves the built shell with the CSRF token
 # injected; every deep link falls through to it so browser refresh works.
 website_route_rules = [
-	{"from_route": "/kamra/<path:app_path>", "to_route": "kamra"},
+	# Lodgiva serves the SPA at /lodgiva. The `lodgiva` www page reuses the
+	# kamra boot shell, so there is one SPA, reachable under the new name.
+	{"from_route": "/lodgiva/<path:app_path>", "to_route": "lodgiva"},
 ]
 
 # Clean, shareable guest URLs redirect into the SPA's routes.
 website_redirects = [
-	{"source": r"/book$", "target": "/kamra/book"},
-	{"source": r"/book/(.*)", "target": r"/kamra/book/\1"},
-	{"source": r"/stay$", "target": "/kamra/stay"},
-	{"source": r"/stay/(.*)", "target": r"/kamra/stay/\1"},
-	{"source": r"/hk$", "target": "/kamra/hk"},
-	{"source": r"/checkin/(.*)", "target": r"/kamra/checkin/\1"},
+	{"source": r"/book$", "target": "/lodgiva/book"},
+	{"source": r"/book/(.*)", "target": r"/lodgiva/book/\1"},
+	{"source": r"/stay$", "target": "/lodgiva/stay"},
+	{"source": r"/stay/(.*)", "target": r"/lodgiva/stay/\1"},
+	{"source": r"/hk$", "target": "/lodgiva/hk"},
+	{"source": r"/checkin/(.*)", "target": r"/lodgiva/checkin/\1"},
+	# The app used to live at /kamra. Keep every old link, bookmark, emailed
+	# pre-check-in URL and printed QR code working.
+	{"source": r"/kamra$", "target": "/lodgiva"},
+	{"source": r"/kamra/(.*)", "target": r"/lodgiva/\1"},
 ]
 
 # Each item in the list will be shown as an app in the apps page

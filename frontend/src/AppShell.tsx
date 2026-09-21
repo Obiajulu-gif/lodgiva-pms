@@ -279,10 +279,10 @@ export default function AppShell() {
           {t("Shared playground — not your hotel. Data is wiped every night.")}
           {" "}
           <a
-            href="https://kamrapms.com"
+            href="/"
             className="underline underline-offset-2 hover:text-black"
           >
-            {t("Get your own Kamra →")}
+            {t("About Lodgiva →")}
           </a>
         </div>
       )}
@@ -290,9 +290,9 @@ export default function AppShell() {
       {!kiosk && (
       <aside className="hidden w-52 shrink-0 border-r border-zinc-200 bg-white px-3 py-5 sm:sticky sm:top-0 sm:block sm:h-screen sm:overflow-y-auto">
         <div className="mb-5 flex items-center gap-2 px-1">
-          <img src={asset("kamra-mark.svg")} alt="" className="size-7" aria-hidden />
+          <img src={asset("lodgiva-mark.svg")} alt="" className="size-7" aria-hidden />
           <span className="text-lg font-semibold tracking-tight">
-            kamra
+            Lodgiva
             <span className="ml-1 align-middle text-[10px] font-semibold tracking-[0.2em] text-brand-600">
               PMS
             </span>

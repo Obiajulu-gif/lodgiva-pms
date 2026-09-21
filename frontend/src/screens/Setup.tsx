@@ -263,7 +263,7 @@ export default function Setup() {
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-1 text-lg font-semibold">{t("Set up a new property")}</h1>
       <p className="mb-4 text-sm text-zinc-500">
-        {t("Hotel or vacation rental — same product, different defaults. Prefer talking? Connect Claude to Kamra's MCP and say \"onboard my property\".")}
+        {t("Hotel or vacation rental — same product, different defaults. Prefer talking? Connect Claude to Lodgiva's MCP and say \"onboard my property\".")}
       </p>
 
       <ol className="mb-6 flex flex-wrap gap-2">
@@ -596,7 +596,7 @@ export default function Setup() {
               )}
               {topology === "whole_property" && (
                 <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
-                  {t("Kamra will create a whole-property sellable unit for each listing. You can add physical rooms later for housekeeping if needed.")}
+                  {t("Lodgiva will create a whole-property sellable unit for each listing. You can add physical rooms later for housekeeping if needed.")}
                 </p>
               )}
             </div>
@@ -708,11 +708,11 @@ export default function Setup() {
                 </p>
                 <p className="mt-1 text-zinc-600">
                   {t(
-                    "After the desk is live, put an AI concierge on your WhatsApp number — it uses Kamra's tools. Metered by HeyKoala; the PMS stays free.",
+                    "After the desk is live, put an AI concierge on your WhatsApp number — it uses Lodgiva's tools. Metered by HeyKoala; the PMS stays free.",
                   )}
                 </p>
                 <a
-                  href="/kamra/marketplace"
+                  href="/lodgiva/marketplace"
                   className="mt-2 inline-block text-sm font-medium text-brand-700 hover:underline"
                 >
                   {t("Open Marketplace → HeyKoala WhatsApp")}

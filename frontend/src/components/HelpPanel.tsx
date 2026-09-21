@@ -5,8 +5,8 @@ import { call, getCurrentProperty } from "../lib/api"
 import { cn } from "../lib/utils"
 import { Markdown } from "../lib/markdown"
 
-/** How-to help assistant - explains how to use Kamra (it never acts on data;
- *  that's Kamra Agent). Streams answers, grounded in the app. */
+/** How-to help assistant - explains how to use Lodgiva (it never acts on data;
+ *  that's Lodgiva Agent). Streams answers, grounded in the app. */
 
 interface Msg {
   role: "user" | "assistant"
@@ -134,7 +134,7 @@ export default function HelpPanel() {
             {msgs.length === 0 && (
               <div className="space-y-2">
                 <p className="text-sm text-zinc-600">
-                  Ask how to do anything in Kamra - I'll walk you through it.
+                  Ask how to do anything in Lodgiva - I'll walk you through it.
                 </p>
                 {SUGGESTIONS.map((s) => (
                   <button
