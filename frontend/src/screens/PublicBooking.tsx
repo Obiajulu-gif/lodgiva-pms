@@ -961,7 +961,7 @@ export default function PublicBooking() {
         )}
 
         <p className="mt-10 text-center text-xs text-zinc-400">
-          Powered by Kamra - the open-source, agent-ready hotel PMS
+          Powered by Lodgiva · built on <a className="underline" href="https://github.com/Kamra-PMS/kamra-pms">Kamra</a> (AGPL-3.0) · <a className="underline" href="https://github.com/Obiajulu-gif/lodgiva-pms">source</a>
         </p>
       </div>
 

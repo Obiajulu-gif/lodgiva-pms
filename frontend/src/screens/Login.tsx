@@ -74,12 +74,12 @@ export default function Login(props: { onSuccess: () => void }) {
           </p>
         )}
         <div className="mb-6 flex flex-col items-center gap-2">
-          <img src={asset("kamra-mark.svg")} alt="Kamra" className="size-16" />
+          <img src={asset("lodgiva-mark.svg")} alt="Lodgiva" className="size-16" />
           <span
             className="text-2xl font-semibold tracking-[0.02em] text-[#1C3F38]"
             style={{ fontFamily: "Montserrat, ui-sans-serif, system-ui, sans-serif" }}
           >
-            kamra
+            Lodgiva
             <span className="ml-1.5 align-middle text-[10px] font-semibold tracking-[0.4em] text-[#1E7B4F]">
               PMS
             </span>
@@ -180,7 +180,7 @@ export default function Login(props: { onSuccess: () => void }) {
         )}
         {version && (
           <p className="mt-6 text-center text-[11px] text-[#6f7a71]">
-            Kamra PMS v{version}
+            Lodgiva PMS v{version}
           </p>
         )}
       </div>
