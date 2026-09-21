@@ -1,22 +1,84 @@
 <p align="center">
-  <img src="branding/png/kamra-mark-512.png" width="96" alt="Kamra — open-source hotel PMS" />
+  <img src="kamra/public/lodgiva-mark.svg" width="96" alt="Lodgiva" />
 </p>
 
-<h1 align="center">Kamra PMS</h1>
+<h1 align="center">Lodgiva PMS</h1>
 
 <p align="center">
-  <b>Open-source hotel &amp; short-term rental PMS</b> — front desk, booking engine,<br/>
-  folios &amp; tax billing, housekeeping, POS, and an <b>MCP tool layer</b> so AI agents can run the property.
+  <b>Hotel management for Nigerian hotels</b> — front desk, tape chart, booking engine,<br/>
+  VAT invoices in naira, cashiering, housekeeping and POS.
 </p>
 
 <p align="center">
-  <a href="https://demo.kamrapms.com"><img src="https://img.shields.io/badge/demo-live-0f766e?style=flat-square" alt="Live demo" /></a>
-  <a href="https://github.com/Kamra-PMS/kamra-pms/releases/latest"><img src="https://img.shields.io/github/v/release/Kamra-PMS/kamra-pms?style=flat-square&label=release" alt="Latest release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" alt="AGPL-3.0" /></a>
-  <a href="https://cloud.frappe.io/marketplace/apps/kamra"><img src="https://img.shields.io/badge/Frappe%20Cloud-Marketplace-ed8936?style=flat-square" alt="Frappe Cloud Marketplace" /></a>
-  <a href="https://kamrapms.com/docs/"><img src="https://img.shields.io/badge/docs-kamrapms.com-111827?style=flat-square" alt="Documentation" /></a>
-  <img src="https://img.shields.io/github/stars/Kamra-PMS/kamra-pms?style=flat-square" alt="GitHub stars" />
+  <img src="https://img.shields.io/badge/Frappe-v16-0089ff?style=flat-square" alt="Frappe v16" />
+  <img src="https://img.shields.io/badge/based%20on-Kamra%20v2.6.2-0f766e?style=flat-square" alt="Based on Kamra v2.6.2" />
 </p>
+
+## About this fork
+
+Lodgiva PMS is a **branded fork of [Kamra PMS](https://github.com/Kamra-PMS/kamra-pms)**
+v2.6.2, part of [Lodgiva](https://github.com/Obiajulu-gif/lodgiva). It is
+installed together with
+[`lodgiva-nigeria`](https://github.com/Obiajulu-gif/lodgiva-nigeria), which
+holds everything Nigerian. This fork stays deliberately close to upstream so
+Kamra's releases can be merged, not rewritten.
+
+**What this fork changes:**
+
+- **Name and look.** Lodgiva's name and logo throughout the interface, and
+  the app served at `/lodgiva` instead of `/kamra`. Every old `/kamra` link
+  redirects, so bookmarks and emailed check-in links keep working.
+- **Assumptions that were India-only.** Invoice wording, rupee icons, the
+  guest-journey currency, and nationality/ID defaults now follow the
+  property's country pack instead of assuming India.
+- **Bugs found while testing.**
+  - A first login on a new browser rendered screens before the hotel was
+    known, so every page asked for Kamra's own demo hotel. The tape chart
+    and settings crashed.
+  - Public pages called a staff-only endpoint.
+  - Desk actions were credited to "None".
+
+**What it keeps:** the Python app is still named `kamra`, and so are its API
+paths (`kamra.api.*`). Those are the contract that upstream updates and
+integrations depend on. The AGPL licence and Kamra's copyright notices are
+unchanged.
+
+### Install
+
+With the Lodgiva installer, on any Ubuntu server (recommended):
+[`deploy/README.md`](https://github.com/Obiajulu-gif/lodgiva/blob/main/deploy/README.md).
+
+Or into an existing Frappe v16 bench:
+
+```bash
+bench get-app payments
+bench get-app https://github.com/Obiajulu-gif/lodgiva-pms --branch main
+bench get-app https://github.com/Obiajulu-gif/lodgiva-nigeria --branch main
+bench --site <site> install-app payments kamra lodgiva_nigeria
+```
+
+### Pulling upstream Kamra
+
+```bash
+git remote add upstream https://github.com/Kamra-PMS/kamra-pms   # once
+git fetch upstream --tags
+git merge v2.6.3                      # a tagged release, never develop
+```
+
+### Source and licence
+
+Lodgiva PMS is AGPL-3.0, like Kamra. If you serve a modified version over a
+network, you must offer its users the corresponding source. That's why this
+repository is public, and why the booking page links to it.
+
+---
+
+## Upstream: Kamra PMS
+
+> Everything below is **Kamra's own README**, kept unchanged. It describes
+> Kamra: its features, demo, docs and roadmap. Links to kamrapms.com and
+> demo.kamrapms.com go to Kamra, not to Lodgiva.
 
 <p align="center">
   <a href="https://demo.kamrapms.com"><b>▶ Live demo</b></a> ·
