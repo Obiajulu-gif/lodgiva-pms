@@ -42,6 +42,10 @@ export function CashierAuthProvider({ children }: { children: ReactNode }) {
   } | null>(null)
 
   const refresh = useCallback(async () => {
+    if (!/(?:^|;\s*)system_user=yes(?:;|$)/.test(document.cookie)) {
+      setStatus(null) // guests and signed-out visitors have no till
+      return
+    }
     try {
       const s = await call<PinStatus>("kamra.api.cashier_pin_status", {
         property: getCurrentProperty(),

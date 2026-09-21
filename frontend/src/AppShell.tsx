@@ -184,6 +184,9 @@ export default function AppShell() {
   const [properties, setProperties] = useState<PropertyRow[]>([])
   const [property, setProperty] = useState(getCurrentProperty())
   const [demoMode, setDemoMode] = useState(false)
+  // False until my_properties() has confirmed (or corrected) the current
+  // property, so no screen fires requests for a hotel that isn't here.
+  const [propertyReady, setPropertyReady] = useState(false)
 
   useEffect(() => {
     myProperties().then((props) => {
@@ -196,13 +199,15 @@ export default function AppShell() {
         ) {
           navigate("/setup", { replace: true })
         }
+        setPropertyReady(true)
         return
       }
       if (!props.some((p) => p.name === getCurrentProperty())) {
         setCurrentProperty(props[0].name)
         setProperty(props[0].name)
       }
-    })
+      setPropertyReady(true)
+    }).catch(() => setPropertyReady(true)) // never block the app on this
     call<{ demo_mode: boolean }>("kamra.public_api.site_info")
       .then((info) => setDemoMode(info.demo_mode))
       .catch(() => setDemoMode(false))
@@ -212,8 +217,9 @@ export default function AppShell() {
 
   // currency symbol + number locale follow the property's country pack
   useEffect(() => {
+    if (!propertyReady) return // wait for the real property, not the fallback
     loadLocale().then(() => setRefreshKey((k) => k + 1))
-  }, [property])
+  }, [property, propertyReady])
 
   function switchProperty(name: string) {
     setCurrentProperty(name)
@@ -402,6 +408,7 @@ export default function AppShell() {
               : "mx-auto max-w-6xl px-4 py-6"
           }
         >
+          {propertyReady ? (
           <Outlet
             context={
               {
@@ -410,6 +417,9 @@ export default function AppShell() {
               } satisfies ShellContext
             }
           />
+          ) : (
+            <div className="p-6 text-sm text-zinc-500">{t("Loading…")}</div>
+          )}
         </main>
       </div>
 
