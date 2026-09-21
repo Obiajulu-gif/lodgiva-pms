@@ -87,7 +87,7 @@ function Row(props: { label: string; value?: string | null }) {
 }
 
 const emptyOccupant = (): Occupant => ({
-  full_name: "", age: null, gender: "", nationality: "Indian",
+  full_name: "", age: null, gender: "", nationality: "Nigerian",
   id_type: "", id_number: "", phone: "",
 })
 

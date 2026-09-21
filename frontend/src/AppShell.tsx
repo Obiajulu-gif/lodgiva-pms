@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import {
-  IndianRupee,
+  Banknote,
   LayoutGrid,
   Moon,
   Plus,
@@ -430,7 +430,7 @@ export default function AppShell() {
       )}
 
       <span className="hidden">
-        <IndianRupee className="size-3" aria-hidden />
+        <Banknote className="size-3" aria-hidden />
       </span>
     </div>
     </div>

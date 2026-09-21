@@ -1095,7 +1095,7 @@ export default function FolioView() {
           {folio.invoice_number && (
             <div className="mt-8 flex items-end justify-between border-t border-zinc-200 pt-4 text-xs text-zinc-500">
               <p className="max-w-md">
-                {t("This is a computer-generated tax invoice under the GST Act.")}
+                {t("This is a computer-generated tax invoice.")}
                 {property.gstin
                   ? ` ${t("Amounts are inclusive of GST at the rates shown.")}`
                   : ""}

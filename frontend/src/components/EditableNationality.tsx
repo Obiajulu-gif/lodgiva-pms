@@ -18,7 +18,7 @@ export default function EditableNationality(props: {
   const variant = props.variant ?? "inline"
   const displayed = props.value?.trim() || "—"
   const [editing, setEditing] = useState(false)
-  const [val, setVal] = useState(props.value ?? "Indian")
+  const [val, setVal] = useState(props.value ?? "Nigerian")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

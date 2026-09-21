@@ -7,6 +7,8 @@ surface serves the React console today and the MCP layer next.
 import json
 
 import frappe
+
+from kamra.localization import currency_symbol
 from frappe import _
 from kamra.authz import require_it_admin, require_roles
 from frappe.utils import add_days, get_datetime, now_datetime, nowdate
@@ -1389,7 +1391,7 @@ def update_occupants(reservation: str, occupants):
 			"full_name": o["full_name"].strip(),
 			"age": o.get("age") or None,
 			"gender": o.get("gender") or "",
-			"nationality": o.get("nationality") or "Indian",
+			"nationality": o.get("nationality") or frappe.get_meta("Guest").get_field("nationality").default or "",
 			"id_type": o.get("id_type") or "",
 			"id_number": (o.get("id_number") or "").strip(),
 			"phone": o.get("phone") or "",
@@ -1928,7 +1930,7 @@ def guest_journey(guest: str):
 		"Reservation",
 		filters={"guest": guest},
 		fields=[
-			"name", "status", "source", "channel", "room", "room_type",
+			"name", "status", "source", "channel", "room", "room_type", "property",
 			"check_in_date", "check_out_date", "nights", "adults", "children",
 			"amount_after_tax", "discount_amount", "special_requests",
 			"booking_type", "company", "creation",
@@ -1969,7 +1971,7 @@ def guest_journey(guest: str):
 			timeline.append({
 				"ts": str(r.actual_check_out), "type": "check_out",
 				"title": "Checked out",
-				"detail": f"Folio ₹{float(r.amount_after_tax or 0):,.0f}",
+				"detail": f"Folio {currency_symbol(r.get('property'))}{float(r.amount_after_tax or 0):,.0f}",
 				"reference": r.name,
 			})
 		if r.status == "Cancelled":
@@ -1989,13 +1991,15 @@ def guest_journey(guest: str):
 				"reference_name": ("in", res_names),
 			},
 			fields=["creation", "agent_name", "action_type", "rationale",
-			        "minutes_saved", "action_channel"],
+			        "minutes_saved", "action_channel", "owner"],
 			order_by="creation desc",
 			limit=50,
 		):
 			timeline.append({
 				"ts": str(log.creation), "type": "agent",
-				"title": f"{log.agent_name} · {log.action_type.replace('_', ' ')}",
+				# Desk actions carry no agent name; credit the staff member.
+				"title": f"{log.agent_name or frappe.utils.get_fullname(log.owner)}"
+				         f" · {log.action_type.replace('_', ' ')}",
 				"detail": log.rationale or "",
 				"channel": log.action_channel,
 			})

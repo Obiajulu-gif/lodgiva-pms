@@ -41,6 +41,16 @@ def pack_for(property: str | None = None):
 	return generic
 
 
+def currency_symbol(property: str | None = None) -> str:
+	"""The property's currency symbol, from its country pack - for server
+	text such as timelines and action logs, which must not assume rupees."""
+	try:
+		doc = frappe.get_cached_doc("Property", property) if property else frappe._dict()
+		return pack_for(property).locale(doc).get("currency_symbol") or ""
+	except Exception:
+		return ""
+
+
 # ── optional pack behaviour, with defaults ───────────────────────────────
 # A pack that predates these keeps working: each accessor falls back to
 # something correct-but-plain, so adding a country never means editing the
