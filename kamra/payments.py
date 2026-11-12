@@ -183,15 +183,20 @@ def test_checkout(link: str | None = None):
 		f"Pay {escape_html(folio.property)}",
 		f"""<p>{escape_html(folio.guest_name or "Guest")} · {escape_html(folio.reservation or folio.name)}</p>
 <p style="font-size:1.75rem;font-weight:600;margin:1rem 0">{symbol}{amount:,.2f}</p>
-<p><a class="btn btn-primary btn-lg" href="/api/method/kamra.payments.test_pay?link={escape_html(link)}">Pay now</a></p>
+<form method="post" action="/api/method/kamra.payments.test_pay">
+<input type="hidden" name="link" value="{escape_html(link)}">
+<button type="submit" class="btn btn-primary btn-lg">Pay now</button></form>
 <p class="text-muted" style="margin-top:1.5rem">Test mode - no real money moves.
 Turn test mode off under Payment Gateway Settings to take live payments.</p>""",
 		indicator_color="blue")
 
 
-@frappe.whitelist(allow_guest=True, methods=["GET"])
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def test_pay(link: str | None = None):
-	"""Play the gateway's "paid" callback for a test link."""
+	"""Play the gateway's "paid" callback for a test link.
+
+	POST only: link previews in WhatsApp and mail clients fetch URLs, and a
+	GET here would mark a stay paid without anyone pressing the button."""
 	folio = _test_folio(link)
 	if not folio:
 		frappe.respond_as_web_page(
