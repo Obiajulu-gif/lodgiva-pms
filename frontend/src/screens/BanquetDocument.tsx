@@ -20,7 +20,7 @@ import {
 } from "../lib/api"
 import { serverError } from "../lib/resource"
 import { Button } from "../components/ui/button"
-import { taxLabel } from "../lib/money"
+import { taxIdLabel, taxLabel } from "../lib/money"
 import { Empty, ErrorNote, inrExact } from "./banquet/shared"
 
 const KINDS: DocumentKind[] = ["quote", "contract", "beo", "pack_list", "invoice"]
@@ -339,7 +339,7 @@ function Letterhead({ doc }: { doc: Doc }) {
                 <>
                   <br />
                   <span className="font-medium text-zinc-700">
-                    {h.tax_id_label ?? "GSTIN"}: {p.gstin}
+                    {h.tax_id_label ?? taxIdLabel()}: {p.gstin}
                   </span>
                 </>
               )}

@@ -96,6 +96,7 @@ function ReservationList(props: {
   action: (row: ReservationRow) => React.ReactNode
 }) {
   const { t } = useT()
+  const [copied, setCopied] = useState<string | null>(null)
   if (props.rows.length === 0) {
     return <p className="px-1 py-3 text-sm text-zinc-400">{props.empty}</p>
   }
@@ -154,9 +155,12 @@ function ReservationList(props: {
                     className="ml-2 font-medium text-brand-700 hover:underline"
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigator.clipboard.writeText(
-                        `${window.location.origin}/checkin/${row.precheckin_token}`,
-                      )
+                      navigator.clipboard
+                        ?.writeText(`${window.location.origin}/checkin/${row.precheckin_token}`)
+                        .then(() => {
+                          setCopied(row.name)
+                          setTimeout(() => setCopied(null), 2000)
+                        })
                     }}
                     title={
                       row.contact_preference === "Booker" && row.booked_by_name
@@ -171,7 +175,7 @@ function ReservationList(props: {
                           : t("Copy the self check-in link - send to the guest")
                     }
                   >
-                    {t("copy check-in link")}
+                    {copied === row.name ? t("check-in link copied ✓") : t("copy check-in link")}
                   </button>
                 )}
             </div>
@@ -536,6 +540,37 @@ export default function Today() {
               />
             </CardContent>
           </Card>
+
+          {/* Only shown when there are any - an empty card every day
+              would train the desk to ignore it. */}
+          {(snap?.overdue?.length ?? 0) > 0 && (
+            <Card className="border-amber-300 dark:border-amber-700">
+              <CardHeader>
+                <CardTitle className="text-amber-700 dark:text-amber-500">
+                  {t("Overdue departures")} ({snap?.overdue.length})
+                </CardTitle>
+                <LogOut className="size-4 text-amber-500" aria-hidden />
+              </CardHeader>
+              <CardContent className="pt-1">
+                <p className="mb-2 text-xs text-zinc-500">
+                  {t("Still checked in after their departure date - these rooms read as occupied everywhere else.")}
+                </p>
+                <ReservationList
+                  rows={snap?.overdue ?? []}
+                  empty=""
+                  action={(row) => (
+                    <Button
+                      variant="outline"
+                      disabled={busy === row.name}
+                      onClick={() => act(row.name, () => checkOut(row.name))}
+                    >
+                      {t("Check out")}
+                    </Button>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-4 lg:col-span-3">

@@ -1,5 +1,8 @@
 /*  Currency and tax vocabulary, from the property's localization pack. Loaded
-    once per session; defaults keep India output identical until it resolves.
+    once per session; the defaults below are only what shows for the few
+    hundred ms before the pack answers, so they are Lodgiva's home market
+    rather than Kamra's - an Indian flash on a Lagos front desk reads as a
+    bug, and on the very first paint there is nothing cached to correct it.
     The last resolved locale is kept in localStorage so screens render with
     the right symbol immediately on reload, before the network answers. */
 
@@ -15,19 +18,19 @@ interface Locale {
 }
 
 let cache: Locale = {
-  currency_symbol: "₹",
-  locale: "en-IN",
-  currency: "INR",
-  tax_label: "GST",
-  tax_id_label: "GSTIN",
-  tax_rates: [0, 5, 12, 18, 28],
+  currency_symbol: "₦",
+  locale: "en-NG",
+  currency: "NGN",
+  tax_label: "VAT",
+  tax_id_label: "TIN",
+  tax_rates: [0, 7.5],
 }
 
 try {
   const saved = JSON.parse(localStorage.getItem("kamra_locale") || "")
   if (saved && saved.currency_symbol) cache = { ...cache, ...saved }
 } catch {
-  /* first run - Indian defaults until the pack resolves */
+  /* first run - the defaults above stand until the pack resolves */
 }
 
 function remember() {
@@ -72,3 +75,7 @@ export const fmtMoney = (n: unknown) =>
   Number(n ?? 0).toLocaleString(cache.locale, { maximumFractionDigits: 2 })
 export const taxRates = () => cache.tax_rates
 export const taxLabel = () => cache.tax_label
+/** India splits GST into CGST + SGST halves on every bill; nobody else does. */
+export const splitsGst = () => cache.currency === "INR"
+/** What the country calls a tax registration number, e.g. "TIN", "GSTIN". */
+export const taxIdLabel = () => cache.tax_id_label

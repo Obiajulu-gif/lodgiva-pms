@@ -14,7 +14,7 @@ import { printThermal, kotHtml, billHtml, type BillData, type KotLine } from "..
 import { useFloorFullscreen } from "../lib/kiosk"
 import { Button } from "../components/ui/button"
 import { cn } from "../lib/utils"
-import { cur, moneyLocale } from "../lib/money"
+import { cur, moneyLocale, splitsGst, taxLabel } from "../lib/money"
 import { useT } from "../lib/i18n"
 
 const inr = (n: unknown) =>
@@ -1215,8 +1215,14 @@ export default function POS() {
                 )}
               </div>
               <div className="flex justify-between text-zinc-500"><span>{t("Subtotal")}</span><span className="tabular-nums">{cur()}{inr2(taxable)}</span></div>
-              <div className="flex justify-between text-xs text-zinc-400"><span>{t("CGST ({rate}%)", { rate: gstRate / 2 })}</span><span className="tabular-nums">{cur()}{inr2(gstAmt / 2)}</span></div>
-              <div className="flex justify-between text-xs text-zinc-400"><span>{t("SGST ({rate}%)", { rate: gstRate / 2 })}</span><span className="tabular-nums">{cur()}{inr2(gstAmt / 2)}</span></div>
+              {splitsGst() ? (
+                <>
+                  <div className="flex justify-between text-xs text-zinc-400"><span>{t("CGST ({rate}%)", { rate: gstRate / 2 })}</span><span className="tabular-nums">{cur()}{inr2(gstAmt / 2)}</span></div>
+                  <div className="flex justify-between text-xs text-zinc-400"><span>{t("SGST ({rate}%)", { rate: gstRate / 2 })}</span><span className="tabular-nums">{cur()}{inr2(gstAmt / 2)}</span></div>
+                </>
+              ) : (
+                <div className="flex justify-between text-xs text-zinc-400"><span>{`${taxLabel()} (${gstRate}%)`}</span><span className="tabular-nums">{cur()}{inr2(gstAmt)}</span></div>
+              )}
               <div className="flex items-baseline justify-between border-t border-zinc-100 pt-1 font-bold">
                 <span>{t("Total")}</span>
                 <span className="text-2xl tabular-nums">{cur()}{inr2(grand)}</span>

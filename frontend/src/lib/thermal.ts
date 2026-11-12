@@ -6,7 +6,7 @@
  * the body is 72mm, the common printable width).
  */
 
-import { cur, moneyLocale } from "./money"
+import { cur, moneyLocale, splitsGst, taxLabel } from "./money"
 
 const CSS = `
   @page { size: 80mm auto; margin: 0 }
@@ -193,8 +193,9 @@ export function billHtml(b: BillData) {
     <div class="rule"></div>
     ${money("Subtotal", b.subtotal)}
     ${b.discount_amount ? money("Discount", -b.discount_amount) : ""}
-    ${money(`CGST @ ${b.gst_rate / 2}%`, b.cgst, "sm")}
-    ${money(`SGST @ ${b.gst_rate / 2}%`, b.sgst, "sm")}
+    ${splitsGst()
+      ? money(`CGST @ ${b.gst_rate / 2}%`, b.cgst, "sm") + money(`SGST @ ${b.gst_rate / 2}%`, b.sgst, "sm")
+      : money(`${taxLabel()} @ ${b.gst_rate}%`, Number(b.cgst || 0) + Number(b.sgst || 0), "sm")}
     <div class="rule"></div>
     ${money("TOTAL", b.grand_total, "b lg")}
     ${b.nc ? `<div class="c b" style="margin-top:4px">COMPLIMENTARY - NO CHARGE</div>` +

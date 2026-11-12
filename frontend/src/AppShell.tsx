@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import {
   Banknote,
+  ChevronDown,
   LayoutGrid,
   Moon,
   Plus,
@@ -121,9 +122,17 @@ function AppSwitcher({ apps, current }: { apps: AppDef[]; current: AppDef }) {
         onClick={() => setOpen((o) => !o)}
         aria-label={t("Switch app")}
         title={t("Switch app")}
-        className="flex size-8 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+        aria-expanded={open}
+        className={
+          "flex h-8 items-center gap-1.5 rounded-md border px-2 text-sm font-medium shadow-sm transition-colors " +
+          (open
+            ? "border-brand-600 bg-brand-50 text-brand-700"
+            : "border-zinc-300 bg-white text-zinc-700 hover:border-brand-600 hover:bg-brand-50 hover:text-brand-700")
+        }
       >
-        <LayoutGrid className="size-4" strokeWidth={1.75} aria-hidden />
+        <LayoutGrid className="size-[18px]" strokeWidth={2} aria-hidden />
+        <span className="hidden sm:inline">{t("Apps")}</span>
+        <ChevronDown className={"size-3.5 transition-transform " + (open ? "rotate-180" : "")} aria-hidden />
       </button>
       {open && (
         <div className="absolute left-0 top-10 z-50 w-64 rounded-lg border border-zinc-200 bg-white p-1.5 shadow-lg ring-1 ring-black/5">

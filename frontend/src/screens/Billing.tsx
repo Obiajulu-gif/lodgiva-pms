@@ -5,7 +5,7 @@ import { call, getCurrentProperty } from "../lib/api"
 import { listResource, serverError, type Row } from "../lib/resource"
 import { Badge } from "../components/ui/badge"
 import { Button } from "../components/ui/button"
-import { cur, moneyLocale } from "../lib/money"
+import { cur, moneyLocale, taxLabel } from "../lib/money"
 import { useT } from "../lib/i18n"
 import {
   Card,
@@ -189,7 +189,7 @@ export default function Billing() {
         <CardHeader>
           <CardTitle>{t("Folios")}</CardTitle>
           <span className="text-xs text-zinc-400">
-            {t("Click a folio to post charges, settle and print the GST invoice")}
+            {t("Click a folio to post charges, settle and print the {tax} invoice", { tax: taxLabel() })}
           </span>
         </CardHeader>
         <CardContent>
