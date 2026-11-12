@@ -33,7 +33,8 @@ scheduler_events = {
 		"0 3 * * *": ["kamra.folio.nightly_audit_all_properties"],
 		# 09:00 - send self check-in links to upcoming arrivals, for properties
 		# that turned the setting on (a plain automation, not an agent)
-		"0 9 * * *": ["kamra.prearrival.run_prearrival_outreach"],
+		"0 9 * * *": ["kamra.prearrival.run_prearrival_outreach",
+		              "kamra.whatsapp.send_prearrival_reminders"],
 		# every 15 min - escalate overdue housekeeping tasks up the ladder;
 		# also release expired Held / Pending Payment reservations (ADR-006)
 		"*/15 * * * *": [
@@ -320,6 +321,9 @@ page_renderer = ["kamra.mcp_http.MCPPageRenderer"]
 # Preserve AioSell's Basic-auth header for the channel webhook before Frappe's
 # own api-key auth rejects it (see kamra.channels.aiosell.preserve_webhook_auth).
 before_request = ["kamra.channels.aiosell.preserve_webhook_auth"]
+# Runs once the user is known (cookie, API key or OAuth): refuse any Kamra
+# API call aimed at a property outside the user's User Permissions.
+auth_hooks = ["kamra.property_guard.enforce"]
 # after_request = ["kamra.utils.after_request"]
 
 # Job Events

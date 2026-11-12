@@ -70,6 +70,25 @@ def _post_graph(conn, payload: dict) -> tuple[bool, str]:
 		return False, str(exc)[:300]
 
 
+def _blocked_recipient(to: str) -> str | None:
+	"""Staging guard: with `lodgiva_whatsapp_test_recipients` in site config
+	(list or comma-separated numbers), nobody else is ever messaged."""
+	allow = frappe.conf.get("lodgiva_whatsapp_test_recipients")
+	if not allow:
+		return None
+	if isinstance(allow, str):
+		allow = allow.split(",")
+	digits = lambda s: "".join(c for c in str(s) if c.isdigit())  # noqa: E731
+	if digits(to) in {digits(a) for a in allow}:
+		return None
+	return "not a test recipient (lodgiva_whatsapp_test_recipients is set)"
+
+
+def _send(conn, to: str, payload: dict) -> tuple[bool, str]:
+	blocked = _blocked_recipient(to)
+	return (False, blocked) if blocked else _post_graph(conn, payload)
+
+
 def _log(property, conn, direction, to_number, from_number, message_type,
          content, template_name=None, guest=None, reservation=None,
          status="Queued", meta_message_id=None, error=None) -> str:
@@ -101,7 +120,7 @@ def send_text(property: str, to: str, body: str, *,
 		return {"sent": False, "reason": "no_meta_connection"}
 	payload = {"messaging_product": "whatsapp", "to": to,
 	           "type": "text", "text": {"body": body[:4000]}}
-	ok, detail = _post_graph(conn, payload)
+	ok, detail = _send(conn, to, payload)
 	_log(property, conn, "Outbound", to, conn.phone_number, "Text", body,
 	     guest=guest, reservation=reservation,
 	     status="Sent" if ok else "Failed",
@@ -127,7 +146,7 @@ def send_template(property: str, to: str, template: str, args: list, *,
 			}] if args else [],
 		},
 	}
-	ok, detail = _post_graph(conn, payload)
+	ok, detail = _send(conn, to, payload)
 	_log(property, conn, "Outbound", to, conn.phone_number, "Template",
 	     " · ".join(str(a) for a in args), template_name=template,
 	     guest=guest, reservation=reservation,
@@ -238,18 +257,90 @@ def webhook(**kwargs):
 		return Response("verify token mismatch", status=403)
 
 	body = {}
+	raw = frappe.request.get_data() if frappe.request else b""
 	try:
-		body = json.loads(frappe.request.data or b"{}")
+		body = json.loads(raw or b"{}")
 	except Exception:
 		pass  # malformed webhook JSON: acknowledge and skip handling
+	signature = frappe.get_request_header("X-Hub-Signature-256") or ""
 	for entry in body.get("entry") or []:
 		for change in entry.get("changes") or []:
-			_handle_inbound((change.get("value") or {}))
+			_handle_inbound((change.get("value") or {}), raw, signature)
 	return {"ok": True}
 
 
-def _handle_inbound(value: dict) -> None:
-	"""One webhook 'value' block: store messages, ticket in-house guests."""
+def signature_ok(conn, raw: bytes, signature: str) -> bool:
+	"""Meta signs each webhook with the app secret (X-Hub-Signature-256).
+	Connections without an app secret predate this check and are trusted."""
+	import hashlib
+	import hmac
+
+	secret = conn.get_password("app_secret", raise_exception=False) if conn.meta.has_field("app_secret") else None
+	if not secret:
+		return True
+	expected = "sha256=" + hmac.new(secret.encode(), raw or b"", hashlib.sha256).hexdigest()
+	return hmac.compare_digest(expected, signature or "")
+
+
+# Meta delivery receipts -> WhatsApp Message.status
+META_STATUS = {"sent": "Sent", "delivered": "Delivered", "read": "Read", "failed": "Failed"}
+STATUS_RANK = {"Queued": 0, "Sent": 1, "Delivered": 2, "Read": 3, "Failed": 3}
+
+
+def _apply_status(st: dict) -> None:
+	status = META_STATUS.get(st.get("status"))
+	name = frappe.db.get_value("WhatsApp Message", {"meta_message_id": st.get("id")},
+	                           ["name", "status"], as_dict=True)
+	if not status or not name:
+		return
+	# receipts can arrive out of order: never step "Read" back to "Delivered"
+	if STATUS_RANK.get(status, 0) < STATUS_RANK.get(name.status, 0):
+		return
+	err = "; ".join(e.get("title") or e.get("message") or "" for e in st.get("errors") or [])
+	frappe.db.set_value("WhatsApp Message", name.name,
+	                    {"status": status, **({"error": err[:500]} if err else {})})
+
+
+def notify_prearrival(reservation: str) -> dict:
+	"""Day-before reminder template. Args: {{1}} guest {{2}} property {{3}} check-in."""
+	res = frappe.get_doc("Reservation", reservation)
+	conn = _conn(res.property)
+	if not conn or not conn.get("tpl_prearrival"):
+		return {"sent": False, "reason": "no_template_configured"}
+	phone = frappe.db.get_value("Guest", res.guest, "phone")
+	if not phone:
+		return {"sent": False, "reason": "guest_has_no_phone"}
+	prop_name = frappe.db.get_value("Property", res.property, "property_name")
+	return send_template(res.property, phone, conn.tpl_prearrival,
+	                     [res.guest_name or "Guest", prop_name or res.property, str(res.check_in_date)],
+	                     guest=res.guest, reservation=res.name)
+
+
+def send_prearrival_reminders() -> dict:
+	"""Daily: remind tomorrow's confirmed arrivals, once each."""
+	from frappe.utils import add_days, nowdate
+
+	sent = skipped = 0
+	for conn in frappe.get_all("Channel Provider Connection", filters={
+			"channel": "WhatsApp", "provider": "Meta Business", "active": 1,
+			"tpl_prearrival": ["is", "set"]}, fields=["property", "tpl_prearrival"]):
+		for r in frappe.get_all("Reservation", filters={
+				"property": conn.property, "status": "Confirmed",
+				"check_in_date": add_days(nowdate(), 1)}, pluck="name"):
+			if frappe.db.exists("WhatsApp Message", {"reservation": r, "template_name": conn.tpl_prearrival,
+			                                         "status": ["!=", "Failed"]}):
+				skipped += 1
+				continue
+			try:
+				sent += bool(notify_prearrival(r).get("sent"))
+			except Exception:
+				frappe.log_error(title=f"Pre-arrival reminder failed for {r}")
+	return {"sent": sent, "already_reminded": skipped}
+
+
+def _handle_inbound(value: dict, raw: bytes = b"", signature: str = "") -> None:
+	"""One webhook 'value' block: store messages, ticket in-house guests,
+	and apply delivery receipts to the messages we sent."""
 	from kamra.agents_channels import _resolve_caller
 
 	phone_id = ((value.get("metadata") or {}).get("phone_number_id") or "")
@@ -262,6 +353,12 @@ def _handle_inbound(value: dict) -> None:
 	if not conn_name:
 		return
 	conn = frappe.get_doc("Channel Provider Connection", conn_name)
+	if not signature_ok(conn, raw, signature):
+		frappe.log_error(title=f"WhatsApp webhook with a bad signature for {conn_name}")
+		return
+
+	for st in value.get("statuses") or []:
+		_apply_status(st)
 
 	for msg in value.get("messages") or []:
 		from_number = msg.get("from") or ""

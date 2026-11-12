@@ -117,6 +117,22 @@ jobs:
             | bench --site test.localhost console | tee journey.out
           grep -q "13/13 passed" journey.out
 
+      - name: Property guard and WhatsApp guard unit tests
+        run: |
+          cd frappe-bench
+          bench --site test.localhost set-config allow_tests true
+          for m in kamra.tests.test_property_guard kamra.tests.test_whatsapp_guards; do
+            bench --site test.localhost run-tests --module "$m" 2>&1 | tee unit.out
+            grep -qE "^OK$" unit.out
+          done
+
+      - name: Integrity under concurrency (last room, gateway retries, night audit, corrections, tax)
+        run: |
+          cd frappe-bench
+          printf 'from kamra.scripts.integrity_checks import execute\nexecute()\nexit\n' \
+            | bench --site test.localhost console | tee integrity.out
+          grep -q "INTEGRITY 8/8 passed" integrity.out
+
       - name: Fresh-install correctness (roles bind, SPA serves)
         run: |
           cd frappe-bench
@@ -135,3 +151,91 @@ jobs:
           printf 'exec(open("/tmp/fresh_check.py").read())\nexit\n' \
             | bench --site test.localhost console | tee fresh.out
           grep -q "FRESH-INSTALL CHECKS PASSED" fresh.out
+
+  upgrade:
+    name: Upgrade from the previous release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # What production runs today: PMS_SHA in deploy/oracle/release.lock
+      # (Obiajulu-gif/lodgiva). Bump it with every release.
+      PREV_RELEASE: de3a5ed54ab780bc2db5c17dbbe8d722846fb20d
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: apps/kamra
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install system deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y redis-server mariadb-client
+          sudo service redis-server start
+          npm install -g yarn
+          mysql -h 127.0.0.1 -uroot -proot -e "
+            SET GLOBAL character_set_server = 'utf8mb4';
+            SET GLOBAL collation_server = 'utf8mb4_unicode_ci';"
+      - name: Install the previous release with data
+        run: |
+          pip install frappe-bench
+          bench init --skip-redis-config-generation --skip-assets --frappe-branch v16.25.0 frappe-bench
+          cd frappe-bench
+          bench set-config -g db_host 127.0.0.1
+          bench set-config -g redis_cache redis://127.0.0.1:6379
+          bench set-config -g redis_queue redis://127.0.0.1:6379
+          bench set-config -g redis_socketio redis://127.0.0.1:6379
+          git -C "${GITHUB_WORKSPACE}/apps/kamra" checkout -q "$PREV_RELEASE"
+          bench get-app payments
+          bench get-app kamra "${GITHUB_WORKSPACE}/apps/kamra"
+          bench new-site test.localhost --mariadb-user-host-login-scope='%'             --db-root-password root --admin-password admin --install-app kamra
+          cat > /tmp/seed.py <<'PY'
+          import frappe, kamra.api
+          from frappe.utils import add_days, nowdate
+          kamra.api.setup_property(payload={"property": {"property_name": "Upgrade Hotel", "city": "Lagos"},
+              "room_types": [{"code": "STD", "name": "Standard", "base_price": 40000}],
+              "rooms": [{"room_type_code": "STD", "numbers": ["101", "102"]}]})
+          rt = frappe.get_all("Room Type", pluck="name")[0]
+          r = kamra.api.create_booking(property="Upgrade Hotel", room_type=rt, check_in_date=nowdate(),
+              check_out_date=add_days(nowdate(), 2), guest_name="Before Upgrade", phone="+2348000000000")
+          kamra.api.check_in(r["reservation"])
+          frappe.db.commit()
+          print("SEEDED", r["reservation"])
+          PY
+          printf 'exec(open("/tmp/seed.py").read())\nexit\n' | bench --site test.localhost console | tee seed.out
+          grep -q SEEDED seed.out
+      - name: Upgrade to this commit and migrate
+        run: |
+          cd frappe-bench/apps/kamra
+          git fetch -q "${GITHUB_WORKSPACE}/apps/kamra" "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
+          cd ../..
+          bench --site test.localhost migrate
+      - name: Data survived and the upgraded site works
+        run: |
+          cd frappe-bench
+          cat > /tmp/after.py <<'PY'
+          import frappe
+          assert frappe.db.get_value("Reservation", {"guest_name": "Before Upgrade"}, "status") == "Checked In"
+          assert frappe.db.count("Folio", {"property": "Upgrade Hotel"}) >= 1
+          print("UPGRADE DATA OK")
+          PY
+          printf 'exec(open("/tmp/after.py").read())\nexit\n' | bench --site test.localhost console | tee after.out
+          grep -q "UPGRADE DATA OK" after.out
+          printf 'from kamra.scripts.integrity_checks import execute\nexecute()\nexit\n' \
+            | bench --site test.localhost console | tee integrity.out
+          grep -q "INTEGRITY 8/8 passed" integrity.out

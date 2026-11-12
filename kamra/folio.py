@@ -692,10 +692,14 @@ def run_night_audit(property: str, business_date: str | None = None) -> dict:
 	# per property AND date - a global AUDIT-<date> name would make the
 	# second property's audit silently no-op every night
 	audit_name = f"AUDIT-{business_date}-{property}"
-	if frappe.db.exists("Night Audit Run", audit_name) or \
-			frappe.db.exists("Night Audit Run",
-			                 {"property": property,
-			                  "business_date": business_date}):
+	# One audit per property at a time: the scheduler and a manual "Run night
+	# audit" can overlap. The Property row lock makes the second wait; the
+	# locking read then sees the first one's committed run (a plain read may
+	# come from an older snapshot and post every room night twice).
+	frappe.db.get_value("Property", property, "name", for_update=True)
+	if frappe.db.sql(
+			"select name from `tabNight Audit Run` where property=%s and business_date=%s"
+			" limit 1 for update", (property, business_date)):
 		return {"already_ran": True, "audit": audit_name}
 
 	log_lines = []
@@ -866,4 +870,8 @@ def nightly_audit_all_properties():
 		try:
 			catch_up_night_audit(p.name)
 		except Exception:
+			# Undo this property's half-posted night before anything else
+			# commits it: the next property's audit commits the transaction.
+			# Re-running resumes cleanly - posted nights are skipped.
+			frappe.db.rollback()
 			frappe.log_error(title=f"Night audit failed: {p.name}")

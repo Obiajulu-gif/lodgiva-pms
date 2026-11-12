@@ -68,13 +68,18 @@ class Reservation(Document):
 		nights = max(1, date_diff(self.check_out_date, self.check_in_date))
 		for i in range(min(int(nights), 366)):
 			d = str(add_days(self.check_in_date, i))
+			# FOR UPDATE: a locking read sees bookings committed after this
+			# transaction's snapshot. A plain COUNT let two concurrent
+			# unassigned bookings (OTA, assign_room=0) both take the last
+			# room-night; with it, the second waits and is refused.
 			cnt = frappe.db.sql(
 				"""SELECT COUNT(*) FROM `tabReservation`
 				   WHERE room_type = %(rt)s AND name != %(name)s
 				     AND status IN ('Confirmed', 'Checked In', 'Held', 'Pending Payment')
 				     AND check_in_date <= %(d)s
 				     AND GREATEST(check_out_date,
-				                  DATE_ADD(check_in_date, INTERVAL 1 DAY)) > %(d)s""",
+				                  DATE_ADD(check_in_date, INTERVAL 1 DAY)) > %(d)s
+				   FOR UPDATE""",
 				{"rt": self.room_type, "name": self.name or "new", "d": d},
 			)[0][0]
 			if cnt + 1 > limit:
