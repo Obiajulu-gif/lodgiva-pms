@@ -34,7 +34,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Gateway",
-   "options": "Razorpay"
+   "options": "Razorpay\nPaystack"
   },
   {
    "fieldname": "column_break_a",

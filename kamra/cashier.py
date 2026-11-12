@@ -85,7 +85,9 @@ def require_open_session(property: str) -> str | None:
 	)
 	if not sess:
 		frappe.throw(
-			"NO_OPEN_SESSION: open your till under Finance → Cashier first.",
+			"Open your till first - Finance → Cashier → Open session. "
+			"Payments are recorded against a cashier session so the "
+			"shift can be reconciled at handover.",
 		)
 	return sess
 

@@ -218,6 +218,15 @@ def owner_briefing(property: str, date: str | None = None):
 		"Reservation",
 		{"property": property, "status": "Checked In", "check_out_date": date},
 	)
+	# Still Checked In after their departure date. Counted separately from
+	# departures because the desk has to chase these, not just expect them.
+	overdue = frappe.get_all(
+		"Reservation",
+		filters={"property": property, "status": "Checked In",
+		         "check_out_date": ("<", date)},
+		fields=["name", "guest_name", "room", "check_out_date"],
+		order_by="check_out_date asc",
+	)
 
 	# yesterday's room revenue + rooms sold from posted folio charges
 	rev, rooms_sold = frappe.db.sql(
@@ -276,6 +285,7 @@ def owner_briefing(property: str, date: str | None = None):
 		"rooms_total": rooms_total,
 		"arrivals_today": arrivals,
 		"departures_today": departures,
+		"overdue_departures": overdue,
 		"yesterday": {
 			"room_revenue": room_revenue, "adr": adr, "revpar": revpar,
 			"night_audit": audit,
@@ -687,6 +697,24 @@ def confirm_pending_reservation(reservation: str):
 def folio_payment_link(folio: str):
 	from kamra.payments import create_payment_link
 	return create_payment_link(folio)
+
+
+@frappe.whitelist()
+@require_roles("Finance", "Front Desk", "Kamra Agent")
+def reservation_payment_link(reservation: str):
+	"""A payment link for a booking, from the front desk. Opens the guest
+	folio if the stay does not have one yet - a booking made a minute ago
+	never does, and that is exactly when a prepayment link gets sent."""
+	from kamra.folio import open_folio
+	from kamra.payments import create_payment_link
+
+	res = frappe.get_doc("Reservation", reservation)
+	if res.status in ("Cancelled", "No Show", "Checked Out", "Waitlist"):
+		frappe.throw(f"This reservation is {res.status} - there is nothing to collect.")
+	out = create_payment_link(open_folio(res))
+	out["folio"] = frappe.db.get_value(
+		"Folio", {"reservation": res.name, "folio_type": "Guest"})
+	return out
 
 
 @frappe.whitelist()
@@ -2124,10 +2152,23 @@ def front_desk_snapshot(property: str | None = None, date: str | None = None):
 		{"since": add_days(date, -30)},
 	)[0][0]
 
+	# Past their departure date and still checked in. Not in `departures`
+	# (keyed on check_out_date == today) and not actionable from any other
+	# list, so they accumulate unseen - holding rooms the tape chart has
+	# already sold.
+	overdue = frappe.get_all(
+		"Reservation",
+		filters={"property": property, "status": "Checked In",
+		         "check_out_date": ("<", date)},
+		fields=res_fields,
+		order_by="check_out_date asc",
+	)
+
 	return {
 		"date": date,
 		"arrivals": arrivals,
 		"departures": departures,
+		"overdue": overdue,
 		"in_house": in_house,
 		"rooms": rooms,
 		"minutes_saved_30d": float(minutes or 0),
@@ -2633,6 +2674,15 @@ def _do_cancel(res, reason: str = "Guest request", note: str | None = None,
 		res.save(ignore_permissions=True)
 	finally:
 		frappe.flags.kamra_cancelling = False
+
+	# A prepayment link opens the folio at booking time; if nothing was ever
+	# charged or paid on it, it would sit in Billing as an open bill forever.
+	# Closed directly, not via close_folio: an empty bill gets no invoice
+	# number. Not deleted: the action log links to it.
+	for f in frappe.get_all("Folio", filters={"reservation": res.name, "status": "Open"}, pluck="name"):
+		if not frappe.db.exists("Folio Charge", {"parent": f}) \
+				and not frappe.db.exists("Folio Payment", {"parent": f}):
+			frappe.db.set_value("Folio", f, {"status": "Closed", "closed_on": frappe.utils.now_datetime()})
 
 	voucher_code = None
 	if int(issue_credit_note or 0) == 1:
