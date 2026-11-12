@@ -65,7 +65,7 @@ def execute():
         f("column_break_b", "Column Break"),
         f("country", "Data", default="India"),
         f("pincode", "Data"),
-        f("timezone", "Data", default="Asia/Kolkata"),
+        f("timezone", "Data"),  # resolved from System Settings when blank
         f("sb_ops", "Section Break", label="Operations"),
         f("currency", "Link", options="Currency", default="INR"),
         f("checkin_time", "Time", label="Check-in Time", default="14:00:00"),

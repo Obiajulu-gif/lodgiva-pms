@@ -12,7 +12,8 @@ import {
   type Quote,
 } from "../lib/api"
 import { Button } from "./ui/button"
-import { cur, moneyLocale } from "../lib/money"
+import PaymentLink from "./PaymentLink"
+import { cur, moneyLocale, taxLabel } from "../lib/money"
 import {
   clampLocal,
   isPhoneComplete,
@@ -72,7 +73,8 @@ function PhoneInput(props: {
           onChange={(e) =>
             props.onChange(joinPhone(dial, clampLocal(e.target.value, dial)))
           }
-          placeholder={props.placeholder ?? "91488 69914"}
+          // A sample in the property's own dial code, not India's.
+          placeholder={props.placeholder ?? (dial === "234" ? "803 123 4567" : "")}
         />
         <span className="shrink-0 pr-3.5 text-xs tabular-nums text-zinc-400">
           {local.length}/{max}
@@ -133,6 +135,7 @@ export function BookingDialog(props: {
     ref: string
     room: string | null
     waitlist?: boolean
+    reservation?: string
   } | null>(
     null,
   )
@@ -426,7 +429,7 @@ export function BookingDialog(props: {
           .filter(([, q]) => q > 0)
           .map(([experience, qty]) => ({ experience, qty })),
       })
-      setDone({ ref: res.reservation, room: res.room })
+      setDone({ ref: res.reservation, room: res.room, reservation: res.reservation })
       props.onBooked()
     } catch (e) {
       setError(shortErr(e))
@@ -565,6 +568,14 @@ export function BookingDialog(props: {
                     : t("No room auto-assigned — pick one from Reservations.")}{" "}
                   {t("Find it under Arrivals on the stay date.")}
                 </p>
+              </div>
+            )}
+            {done.reservation && (
+              <div className="max-w-xl">
+                <p className="mb-2 text-sm text-zinc-600">
+                  {t("Taking a deposit? Send the guest a payment link for the stay total.")}
+                </p>
+                <PaymentLink reservation={done.reservation} label={t("Get payment link")} />
               </div>
             )}
             <Button className="px-5 py-2.5 text-base" onClick={props.onClose}>
@@ -764,8 +775,10 @@ export function BookingDialog(props: {
                       <option value="">{t("Room only")}</option>
                       {options?.meal_plans.map((mp) => (
                         <option key={mp.name} value={mp.name}>
-                          {mp.label} (+{cur()}
-                          {inr(mp.price_per_adult)}/adult)
+                          {mp.label || mp.name.split("-").pop()}
+                          {mp.price_per_adult
+                            ? ` (+${cur()}${inr(mp.price_per_adult)}/adult)`
+                            : ""}
                         </option>
                       ))}
                     </select>
@@ -1215,7 +1228,7 @@ export function BookingDialog(props: {
                       </div>
                     )}
                     <div className="flex justify-between text-zinc-600">
-                      <span>GST {quote.tax_percent}%</span>
+                      <span>{taxLabel()} {quote.tax_percent}%</span>
                       <span className="tabular-nums">
                         {cur()}
                         {inr(quote.tax_amount)}

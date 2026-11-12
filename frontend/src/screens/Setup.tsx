@@ -6,7 +6,7 @@ import { Badge } from "../components/ui/badge"
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { cn } from "../lib/utils"
-import { cur } from "../lib/money"
+import { cur, taxIdLabel } from "../lib/money"
 import { useT } from "../lib/i18n"
 
 const inputCls =
@@ -334,7 +334,7 @@ export default function Setup() {
                   ["city", t("City"), "text", "Bengaluru"],
                   ["state", t("State"), "text", "Karnataka"],
                   ["phone", t("Phone"), "text", "+91 …"],
-                  ["gstin", t("GSTIN"), "text", "29XXXXX…"],
+                  ["gstin", taxIdLabel(), "text", ""],
                   ["checkin_time", t("Check-in Time"), "time", ""],
                   ["checkout_time", t("Check-out Time"), "time", ""],
                   ["minimum_nights", t("Minimum Nights"), "number", "1"],

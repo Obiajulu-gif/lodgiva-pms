@@ -5,7 +5,7 @@ import GroupControl from "../components/GroupControl"
 import RoomTypeMedia from "../components/RoomTypeMedia"
 import { HkTaskMediaPanel } from "../components/HkMedia"
 import ReservationDetail from "./ReservationDetail"
-import { cur } from "../lib/money"
+import { cur, taxIdLabel, taxLabel } from "../lib/money"
 
 export const roomsConfig: ScreenConfig = {
   doctype: "Room",
@@ -45,7 +45,7 @@ export const roomTypesConfig: ScreenConfig = {
     { field: "base_price", label: `Base ${cur()}/night` },
     { field: "base_occupancy", label: "Base occ." },
     { field: "extra_adult_price", label: `Extra adult ${cur()}` },
-    { field: "tax_percent", label: "GST %" },
+    { field: "tax_percent", label: `${taxLabel()} %` },
   ],
   form: [
     { field: "room_type_name", label: "Name", type: "data", required: true },
@@ -59,7 +59,7 @@ export const roomTypesConfig: ScreenConfig = {
     { field: "child_price", label: "Child / night", type: "currency" },
     { field: "adults_capacity", label: "Max adults", type: "int" },
     { field: "children_capacity", label: "Max children", type: "int" },
-    { field: "tax_percent", label: "GST %", type: "float" },
+    { field: "tax_percent", label: `${taxLabel()} %`, type: "float" },
     { field: "bed_type", label: "Bed type", type: "select", options: ["King", "Queen", "Twin", "Double", "Single"], dependsOn: (d) => d.room_category !== "Villa" },
     { field: "air_conditioning", label: "Air Conditioning", type: "select", options: ["AC", "Non AC"], dependsOn: (d) => d.room_category !== "Villa" },
     // { field: "bathroom", label: "Bathroom Type", type: "select", options: ["Attached", "Common"], dependsOn: (d) => d.room_category !== "Villa" },
@@ -255,7 +255,7 @@ export const venuesConfig: ScreenConfig = {
     { field: "base_price", label: "Day rental", type: "currency" },
     { field: "hourly_rate", label: "Hourly rental", type: "currency" },
     { field: "min_hours", label: "Minimum hours", type: "int" },
-    { field: "gst_rate", label: "Rental GST %", type: "int" },
+    { field: "gst_rate", label: `Rental ${taxLabel()} %`, type: "int" },
     { field: "setup_styles", label: "Layouts it takes", type: "data" },
     { field: "amenities", label: "Amenities", type: "data" },
     { field: "disabled", label: "Disabled", type: "check" },
@@ -451,14 +451,14 @@ export const companiesConfig: ScreenConfig = {
   pageSize: 25,
   columns: [
     { field: "company_name", label: "Company" },
-    { field: "gstin", label: "GSTIN" },
+    { field: "gstin", label: taxIdLabel() },
     { field: "contact_name", label: "Contact" },
     { field: "contact_phone", label: "Phone" },
     { field: "credit_allowed", label: "Credit" },
   ],
   form: [
     { field: "company_name", label: "Company name", type: "data", required: true },
-    { field: "gstin", label: "GSTIN", type: "data" },
+    { field: "gstin", label: taxIdLabel(), type: "data" },
     { field: "contact_name", label: "Contact name", type: "data" },
     { field: "contact_phone", label: "Contact phone", type: "data" },
     { field: "contact_email", label: "Contact email", type: "data" },
@@ -500,7 +500,7 @@ export const billingConfig: ScreenConfig = {
   dateFilter: { field: "check_in_date", label: "Check-in" },
   title: "Billing",
   description:
-    "Reservation totals. Folios, charge posting and GST invoices arrive in the next milestone.",
+    `Reservation totals. Folios, charge posting and ${taxLabel()} invoices arrive in the next milestone.`,
   propertyScoped: true,
   allowCreate: false,
   allowDelete: false,
@@ -518,7 +518,7 @@ export const billingConfig: ScreenConfig = {
   form: [
     { field: "guest_name", label: "Guest", type: "readonly" },
     { field: "amount_before_tax", label: "Pre-tax", type: "readonly" },
-    { field: "tax_amount", label: "GST", type: "readonly" },
+    { field: "tax_amount", label: taxLabel(), type: "readonly" },
     { field: "amount_after_tax", label: "Total", type: "readonly" },
   ],
 }
@@ -607,12 +607,12 @@ export const outletsConfig: ScreenConfig = {
   columns: [
     { field: "outlet_name", label: "Outlet" },
     { field: "outlet_type", label: "Type", badge: true },
-    { field: "gst_rate", label: "GST %" },
+    { field: "gst_rate", label: `${taxLabel()} %` },
   ],
   form: [
     { field: "outlet_name", label: "Outlet name", type: "data", required: true },
     { field: "outlet_type", label: "Type", type: "select", options: ["Restaurant", "Room Service", "Bar", "Spa", "Other"] },
-    { field: "gst_rate", label: "GST %", type: "float" },
+    { field: "gst_rate", label: `${taxLabel()} %`, type: "float" },
     { field: "disabled", label: "Disabled", type: "check" },
   ],
 }

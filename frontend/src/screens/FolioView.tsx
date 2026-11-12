@@ -4,12 +4,13 @@ import { Link, useNavigate, useParams } from "react-router-dom"
 import { call } from "../lib/api"
 import EditableNationality from "../components/EditableNationality"
 import LinkedRecords from "../components/LinkedRecords"
+import PaymentLink from "../components/PaymentLink"
 import { loadLocale, taxRates } from "../lib/money"
 import { serverError } from "../lib/resource"
 import { useCashierAuth } from "../lib/cashierAuth"
 import { Badge } from "../components/ui/badge"
 import { Button } from "../components/ui/button"
-import { cur, moneyLocale, taxLabel } from "../lib/money"
+import { cur, moneyLocale, taxIdLabel, taxLabel } from "../lib/money"
 import { useT } from "../lib/i18n"
 import {
   Card,
@@ -145,7 +146,10 @@ const CHARGE_TYPES = [
   "Food & Beverage", "Minibar", "Laundry", "Spa",
   "Early Check-in", "Late Checkout", "Discount", "Misc",
 ]
-const PAY_MODES = ["Cash", "Card", "UPI", "Bank Transfer", "Payment Link"]
+// Order is the order a Nigerian front desk actually reaches for. UPI is
+// an Indian rail and has no meaning here; it stays only so historic rows
+// that carry it still render.
+const PAY_MODES = ["Cash", "Bank Transfer", "Card", "Payment Link", "UPI"]
 
 const inputCls =
   "rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm " +
@@ -197,7 +201,7 @@ export default function FolioView() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [voidFor, setVoidFor] = useState<string | null>(null)
   const [partVal, setPartVal] = useState("")
-  const [payment, setPayment] = useState({ mode: "UPI", amount: "", reference: "", kind: "Payment" })
+  const [payment, setPayment] = useState({ mode: "Cash", amount: "", reference: "", kind: "Payment" })
   const [refund, setRefund] = useState<{ amount: string; mode: string; reason: string } | null>(null)
   const [showCancel, setShowCancel] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
@@ -327,18 +331,7 @@ export default function FolioView() {
             </div>
           )}
           {open && folio.balance > 0 && (
-            <Button
-              variant="outline"
-              disabled={busy}
-              onClick={() =>
-                act(async () => {
-                  const r = await call<{ url: string }>(
-                    "kamra.api.folio_payment_link",
-                    { folio: folio.name },
-                  )
-                  navigator.clipboard.writeText(r.url)
-                })
-              }
+            <div
               title={`Creates a payment link for the balance and copies it - send to the ${
                 data.stay.contact_preference === "Booker" &&
                 data.stay.booked_by_name
@@ -349,8 +342,8 @@ export default function FolioView() {
                     : "guest"
               }`}
             >
-              {t("Payment link")}
-            </Button>
+              <PaymentLink folio={folio.name} popover />
+            </div>
           )}
           {open && (
             <Button
@@ -569,7 +562,7 @@ export default function FolioView() {
                 <p className="text-sm text-zinc-500">
                   {property.gstin && (
                     <>
-                      GSTIN: <span className="font-medium">{property.gstin}</span>{" "}
+                      {taxIdLabel()}: <span className="font-medium">{property.gstin}</span>{" "}
                       ·{" "}
                     </>
                   )}
@@ -603,7 +596,7 @@ export default function FolioView() {
               <span className="text-zinc-500">{t("Bill to")}: </span>
               <span className="font-medium">{data.bill_to.name}</span>
               {data.bill_to.gstin && (
-                <span className="text-zinc-500"> · GSTIN {data.bill_to.gstin}</span>
+                <span className="text-zinc-500"> · {taxIdLabel()} {data.bill_to.gstin}</span>
               )}
             </div>
           )}
@@ -765,7 +758,7 @@ export default function FolioView() {
                               onChange={(e) => setPartVal(e.target.value)}
                             />
                             <span className="text-zinc-400">
-                              ({cur()} = {t("before GST")})
+                              ({cur()} = {t("before {tax}", { tax: taxLabel() })})
                             </span>
                           </span>
                         )}
@@ -1097,7 +1090,7 @@ export default function FolioView() {
               <p className="max-w-md">
                 {t("This is a computer-generated tax invoice.")}
                 {property.gstin
-                  ? ` ${t("Amounts are inclusive of GST at the rates shown.")}`
+                  ? ` ${t("Amounts are inclusive of {tax} at the rates shown.", { tax: taxLabel() })}`
                   : ""}
               </p>
               <div className="text-center">
@@ -1153,7 +1146,7 @@ export default function FolioView() {
               >
                 {rates.map((n) => String(n)).map((r) => (
                   <option key={r} value={r}>
-                    {t("GST {rate}%", { rate: r })}
+                    {t("{tax} {rate}%", { tax: taxLabel(), rate: r })}
                   </option>
                 ))}
               </select>
@@ -1210,7 +1203,7 @@ export default function FolioView() {
                   >
                     {rates.map((n) => String(n)).map((r) => (
                       <option key={r} value={r}>
-                        GST {r}%
+                        {taxLabel()} {r}%
                       </option>
                     ))}
                   </select>

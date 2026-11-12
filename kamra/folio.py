@@ -724,6 +724,21 @@ def run_night_audit(property: str, business_date: str | None = None) -> dict:
 			amount_posted += Decimal(str(_nightly_room_rate(res, business_date)))
 			log_lines.append(f"posted room night {business_date} for {res.name}")
 
+	# overstays: still Checked In after their departure date. The in-house
+	# loop above skips them (check_out_date > business_date), so without
+	# this line a guest who never checked out is silently absent from the
+	# audit while still holding a room.
+	overstays = frappe.get_all(
+		"Reservation",
+		filters={"property": property, "status": "Checked In",
+		         "check_out_date": ("<=", business_date)},
+		fields=["name", "room", "check_out_date"],
+	)
+	for row in overstays:
+		log_lines.append(
+			f"OVERSTAY: {row.name} in {row.room or 'no room'} was due out "
+			f"{row.check_out_date} and is still checked in")
+
 	# no-shows: confirmed arrivals whose date has passed - flagged AND
 	# charged per the property's policy
 	no_show_basis = frappe.db.get_value(
@@ -747,8 +762,10 @@ def run_night_audit(property: str, business_date: str | None = None) -> dict:
 			                      f"No-show charge ({no_show_basis})")
 			if fee:
 				amount_posted += Decimal(str(fee))
+				from kamra.localization import currency_symbol
 				log_lines.append(
-					f"posted no-show charge ₹{fee:,.0f} for {row.name}")
+					f"posted no-show charge "
+					f"{currency_symbol(property)}{fee:,.0f} for {row.name}")
 
 	# purge stale waitlist entries - two days after their requested departure
 	from frappe.utils import add_days as _add_days
@@ -799,15 +816,54 @@ def run_night_audit(property: str, business_date: str | None = None) -> dict:
 		"amount_posted": float(amount_posted),
 		"no_shows_flagged": no_shows,
 		"folios_opened": folios_opened,
+		"overstays": len(overstays),
 		"business_date": business_date,
 		"next_business_date": new_bd,
 	}
+
+
+# A year of missed nights is already a catastrophe; the cap only stops a
+# bad business_date (say, year 1900) from spinning forever.
+MAX_CATCH_UP_DAYS = 370
+
+
+def catch_up_night_audit(property: str, today: str | None = None) -> list[dict]:
+	"""Audit every business date still short of today, oldest first.
+
+	One run closes exactly one day. That is correct for a hotel whose
+	audit runs nightly, and quietly wrong for one whose server was off:
+	the roll is +1 per run, so a week of downtime left the front-office
+	date a week behind FOR GOOD, and every charge after it posted into
+	the past - wrong day, wrong month, wrong VAT period. Closing the gap
+	here is what keeps the business date tied to the calendar.
+	"""
+	from kamra.business_date import (
+		advance_business_date,
+		ensure_business_date,
+		get_business_date,
+		property_today,
+	)
+
+	today = today or property_today(property)
+	ensure_business_date(property)
+	runs = []
+	for _ in range(MAX_CATCH_UP_DAYS):
+		business_date = get_business_date(property)
+		if business_date >= today:
+			break
+		runs.append(run_night_audit(property, business_date))
+		# A date that was already audited still has to be stepped over, or
+		# the loop spins on it: run_night_audit returns early on a repeat
+		# and never reaches its own roll.
+		if get_business_date(property) == business_date:
+			advance_business_date(property, business_date)
+	return runs
 
 
 def nightly_audit_all_properties():
 	"""Scheduler entry point - runs the audit for every active property."""
 	for p in frappe.get_all("Property", filters={"disabled": 0}):
 		try:
-			run_night_audit(p.name)
+			catch_up_night_audit(p.name)
 		except Exception:
 			frappe.log_error(title=f"Night audit failed: {p.name}")

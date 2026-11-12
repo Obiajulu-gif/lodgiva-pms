@@ -123,6 +123,10 @@ const DIAL_BY_COUNTRY: Record<string, string> = {
   nz: "64",
 
   // Africa and Middle East
+  nigeria: "234",
+  ng: "234",
+  ghana: "233",
+  gh: "233",
   "south africa": "27",
   za: "27",
   kenya: "254",
@@ -199,6 +203,8 @@ const LENGTH_BY_DIAL: Record<string, { min: number; max: number }> = {
   "64": { min: 8, max: 10 }, // New Zealand
 
   // Africa and Middle East
+  "234": { min: 10, max: 10 }, // Nigeria - 11 with the trunk 0
+  "233": { min: 9, max: 9 }, // Ghana
   "27": { min: 9, max: 9 }, // South Africa
   "254": { min: 9, max: 9 }, // Kenya
   "20": { min: 10, max: 10 }, // Egypt
@@ -217,9 +223,14 @@ export function phoneLengthForDial(dial: string): { min: number; max: number } {
   return { min: DEFAULT_LENGTH.min, max: Math.min(DEFAULT_LENGTH.max, room) }
 }
 
+/** Lodgiva's home market, used only when a property has no country set.
+ *  Getting this wrong is not cosmetic: a guest saved under the wrong
+ *  dial code cannot be called or sent a WhatsApp message. */
+const HOME_DIAL = "234"
+
 export function dialForCountry(country?: string | null): string {
-  const key = (country || "India").trim().toLowerCase()
-  return DIAL_BY_COUNTRY[key] || "91"
+  const key = (country || "").trim().toLowerCase()
+  return DIAL_BY_COUNTRY[key] || HOME_DIAL
 }
 
 /** Digits only, drop a leading trunk 0. */

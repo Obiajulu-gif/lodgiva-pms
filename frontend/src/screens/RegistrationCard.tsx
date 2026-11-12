@@ -6,7 +6,7 @@ import { call } from "../lib/api"
 import { toFullPath } from "../lib/routing"
 import EditableNationality from "../components/EditableNationality"
 import { Button } from "../components/ui/button"
-import { cur, moneyLocale } from "../lib/money"
+import { cur, moneyLocale, taxIdLabel, taxLabel } from "../lib/money"
 
 /** Printable Guest Registration Card (GRC) - sign at check-in. */
 
@@ -81,7 +81,7 @@ function Row(props: { label: string; value?: string | null }) {
   return (
     <div className="flex border-b border-zinc-200 py-1.5 text-sm">
       <span className="w-40 shrink-0 text-zinc-500">{props.label}</span>
-      <span className="font-medium">{props.value || "-"}</span>
+      <span className="min-w-0 break-words font-medium [overflow-wrap:anywhere]">{props.value || "-"}</span>
     </div>
   )
 }
@@ -409,7 +409,7 @@ export default function RegistrationCard() {
             <h1 className="text-lg font-bold">{d.property.property_name}</h1>
             <p className="text-xs text-zinc-500">{d.property.address}</p>
             <p className="text-xs text-zinc-500">
-              {d.property.gstin && <>GSTIN {d.property.gstin} · </>}
+              {d.property.gstin && <>{taxIdLabel()} {d.property.gstin} · </>}
               {d.property.phone}
             </p>
           </div>
@@ -488,7 +488,7 @@ export default function RegistrationCard() {
               field="actual_check_out" value={d.reservation.actual_check_out} onSaved={load} />
             <Row label="Nights" value={String(d.reservation.nights)} />
             <Row label="Guests" value={`${d.reservation.adults} adult(s)${d.reservation.children ? ` + ${d.reservation.children} child` : ""}`} />
-            <Row label="Stay total" value={`${cur()}${inr(d.reservation.rate_total)} (incl. GST)`} />
+            <Row label="Stay total" value={`${cur()}${inr(d.reservation.rate_total)} (incl. ${taxLabel()})`} />
             <Row label="Advance paid" value={`${cur()}${inr(d.reservation.advance_paid)}`} />
             {d.money && (
               <>

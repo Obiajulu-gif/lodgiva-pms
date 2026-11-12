@@ -227,6 +227,8 @@ export interface Snapshot {
   date: string
   arrivals: ReservationRow[]
   departures: ReservationRow[]
+  /** Still checked in after their departure date. */
+  overdue: ReservationRow[]
   in_house: ReservationRow[]
   rooms: RoomRow[]
   minutes_saved_30d: number

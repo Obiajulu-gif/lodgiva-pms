@@ -169,8 +169,7 @@
    "label": "Pincode"
   },
   {
-   "default": "Asia/Kolkata",
-   "fieldname": "timezone",
+      "fieldname": "timezone",
    "fieldtype": "Data",
    "label": "Timezone"
   },

@@ -240,6 +240,21 @@ doc_events["Reservation"] = {
 	"on_trash": "kamra.realtime.notify",
 }
 
+# A restricted subscription stops this hotel taking NEW business, and nothing
+# else. Guests already in the building must still be able to check out, so the
+# guard blocks inserts of revenue documents only - see kamra/access_guard.py.
+for _blocked in ("Reservation", "POS Order", "Venue Booking", "Group Booking",
+                 "Folio Charge"):
+	_events = doc_events.setdefault(_blocked, {})
+	_existing = _events.get("before_insert")
+	if _existing is None:
+		_events["before_insert"] = "kamra.access_guard.enforce_access_mode"
+	elif isinstance(_existing, str):
+		_events["before_insert"] = [_existing, "kamra.access_guard.enforce_access_mode"]
+	else:
+		_events["before_insert"] = list(_existing) + ["kamra.access_guard.enforce_access_mode"]
+
+
 # Scheduled Tasks
 # ---------------
 
