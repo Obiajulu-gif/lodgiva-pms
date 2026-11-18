@@ -210,7 +210,19 @@ def site_info():
 	`kamra_demo_mode` default), so a real install never advertises the
 	demo login accounts.
 	"""
-	return {"demo_mode": frappe.db.get_default("kamra_demo_mode") == "1"}
+	demo = frappe.db.get_default("kamra_demo_mode") == "1"
+	out = {"demo_mode": demo}
+	if demo:
+		# The one-tap demo logins come from the server, and only on the demo
+		# site, so their passwords never ship in the bundle every hotel serves.
+		from kamra.scripts.seed_users import USERS
+		labels = {"System Manager": "System Admin", "Hotel Admin": "Hotel Admin (GM)",
+		          "Front Desk": "Front Desk", "Revenue Manager": "Revenue",
+		          "Finance": "Finance", "Housekeeping": "Housekeeping"}
+		out["demo_accounts"] = [
+			{"label": labels.get(u["roles"][0], u["roles"][0]), "usr": u["email"], "pwd": u["password"]}
+			for u in USERS]
+	return out
 
 
 @frappe.whitelist(allow_guest=True)

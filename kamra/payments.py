@@ -119,13 +119,23 @@ def create_payment_link(folio_name: str) -> dict:
 		"test_mode": bool(settings.test_mode)}
 
 
-def post_link_payment(folio_name: str, amount: float, reference: str) -> bool:
+def post_link_payment(folio_name: str, amount: float, reference: str,
+                      mode: str = "Payment Link") -> bool:
 	"""Record money that arrived through a link. One place for every
 	gateway, so the rules cannot differ between them. False when this
 	reference is already on the folio - gateways retry their webhooks."""
-	folio = frappe.get_doc("Folio", folio_name)
-	if amount <= 0 or any(row.reference == reference for row in folio.payments):
+	if amount <= 0 or not reference:
 		return False
+	# Gateways retry concurrently. Lock the folio row so a second delivery
+	# waits for the first to commit, then look for the reference with a
+	# locking read: a plain read could come from a snapshot taken before
+	# the first delivery committed, and credit the folio twice.
+	frappe.db.get_value("Folio", folio_name, "name", for_update=True)
+	if frappe.db.sql(
+		"select name from `tabFolio Payment` where parenttype='Folio' and parent=%s"
+		" and reference=%s limit 1 for update", (folio_name, reference)):
+		return False
+	folio = frappe.get_doc("Folio", folio_name)
 	from kamra.business_date import get_business_date
 	from kamra.folio import _recalculate
 
@@ -135,12 +145,16 @@ def post_link_payment(folio_name: str, amount: float, reference: str) -> bool:
 	folio.append("payments", {
 		"posting_date": get_business_date(folio.property),
 		"payment_kind": kind,
-		"mode": "Payment Link",
+		"mode": mode,
 		"amount": amount,
 		"reference": reference,
 	})
 	_recalculate(folio)
 	folio.save(ignore_permissions=True)
+	# Same ledger row a desk payment writes (add_folio_payment): without it
+	# link payments were missing from the ledger and finance totals.
+	from kamra.ledger import record_payment_ledger
+	record_payment_ledger(folio, folio.payments[-1].as_dict())
 
 	from kamra.savings import log_action
 	_, symbol = _currency(folio.property)

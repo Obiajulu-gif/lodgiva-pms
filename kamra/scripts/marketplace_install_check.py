@@ -67,11 +67,11 @@ def check_hooks() -> None:
 	if ns.get("required_apps") != ["payments"]:
 		fail(f"required_apps expected ['payments'], got {ns.get('required_apps')}")
 	screen = ns.get("add_to_apps_screen") or []
-	if not screen or screen[0].get("route") != "/kamra":
-		fail("add_to_apps_screen missing /kamra route")
+	if not screen or screen[0].get("route") != "/lodgiva":
+		fail("add_to_apps_screen missing /lodgiva route")
 	rules = str(ns.get("website_route_rules"))
-	if "/kamra/<path:app_path>" not in rules:
-		fail("/kamra SPA route rule missing")
+	if "/lodgiva/<path:app_path>" not in rules:
+		fail("/lodgiva SPA route rule missing")
 	if ns.get("app_license") != "agpl-3.0":
 		fail("app_license is not agpl-3.0")
 	ok("hooks.py: payments, /kamra launcher, SPA route, AGPL")

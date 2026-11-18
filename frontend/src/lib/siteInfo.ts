@@ -1,7 +1,10 @@
 import { call } from "./api"
 
+export type DemoAccount = { label: string; usr: string; pwd: string }
+
 export type SiteInfo = {
   demo_mode: boolean
+  demo_accounts?: DemoAccount[]
   version?: string
   app?: string
   site?: string

@@ -219,6 +219,8 @@ export const APPS: AppDef[] = [
       { to: "/folio-history", label: "Folio History", icon: History, group: "Billing" },
       { to: "/laundry", label: "Laundry", icon: Shirt, group: "Billing" },
       // Books
+      { to: "/group", label: "Group Dashboard", icon: Network, group: "Books" },
+      { to: "/reconciliation", label: "Reconciliation", icon: ListChecks, group: "Books" },
       { to: "/ledgers", label: "Ledgers", icon: BookOpen, group: "Books" },
       { to: "/reports", label: "Reports", icon: Banknote, group: "Books" },
       { to: "/accounting-export", label: "Accounting Export", icon: FileSpreadsheet, group: "Books" },

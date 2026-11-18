@@ -30,7 +30,9 @@
   "column_break_meta",
   "tpl_booking_confirmation",
   "tpl_precheckin",
-  "tpl_payment_request"
+  "tpl_payment_request",
+  "tpl_prearrival",
+  "app_secret"
  ],
  "fields": [
   {
@@ -107,7 +109,7 @@
    "label": "Auth"
   },
   {
-   "description": "HMAC secret Kamra uses to verify inbound webhooks. Rotate freely — the provider is told the new value when they re-connect.",
+   "description": "HMAC secret Kamra uses to verify inbound webhooks. Rotate freely \u2014 the provider is told the new value when they re-connect.",
    "fieldname": "webhook_secret",
    "fieldtype": "Password",
    "label": "Inbound Webhook Secret"
@@ -174,6 +176,18 @@
    "fieldtype": "Data",
    "label": "Template: payment request",
    "description": "Args: guest, amount, note"
+  },
+  {
+   "fieldname": "tpl_prearrival",
+   "fieldtype": "Data",
+   "label": "Template: pre-arrival reminder",
+   "description": "Args: guest, property, check-in date. Sent the day before arrival."
+  },
+  {
+   "fieldname": "app_secret",
+   "fieldtype": "Password",
+   "label": "Meta app secret",
+   "description": "Verifies Meta's X-Hub-Signature-256 on every webhook. Without it, inbound messages and delivery receipts are accepted unsigned."
   }
  ],
  "grid_page_length": 50,

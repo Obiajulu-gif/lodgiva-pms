@@ -48,6 +48,7 @@ export interface BookingInitial {
 export interface ShellContext {
   refreshKey: number
   openBooking: (initial: BookingInitial) => void
+  switchProperty: (name: string) => void
 }
 
 function SearchShortcut() {
@@ -363,7 +364,7 @@ export default function AppShell() {
           <AppSwitcher apps={apps} current={currentApp ?? apps[0]} />
           {properties.length > 1 ? (
             <select
-              className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium focus:outline-2 focus:outline-brand-600"
+              className="min-w-0 max-w-[45vw] truncate rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium focus:outline-2 focus:outline-brand-600 sm:max-w-none"
               value={property}
               onChange={(e) => switchProperty(e.target.value)}
               aria-label={t("Property")}
@@ -396,9 +397,9 @@ export default function AppShell() {
             >
               {t("Sign out")}
             </button>
-            <Button onClick={() => setBooking({})}>
+            <Button onClick={() => setBooking({})} aria-label={t("New booking")}>
               <Plus className="size-4" aria-hidden />
-              {t("New booking")}
+              <span className="hidden sm:inline">{t("New booking")}</span>
             </Button>
           </div>
         </header>
@@ -414,7 +415,7 @@ export default function AppShell() {
                     ? "h-[100dvh] overflow-hidden p-0"
                     : "min-h-[calc(100dvh-3.5rem)] overflow-auto p-3 lg:min-h-0 lg:flex-1 lg:overflow-hidden",
                 )
-              : "mx-auto max-w-6xl px-4 py-6"
+              : "mx-auto w-full max-w-6xl px-4 py-6"
           }
         >
           {propertyReady ? (
@@ -423,6 +424,7 @@ export default function AppShell() {
               {
                 refreshKey,
                 openBooking: (initial) => setBooking(initial),
+                switchProperty,
               } satisfies ShellContext
             }
           />

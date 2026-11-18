@@ -53,3 +53,17 @@ def test_an_already_audited_date_is_stepped_over_not_spun_on():
 def test_the_cap_bounds_a_nonsense_business_date():
     ran = catch_up("1900-01-01", "2026-10-29", set())
     assert len(ran) == 370
+
+
+# Frappe's runner (bench run-tests) only collects unittest classes, so these
+# plain test functions ran zero tests there. Expose them as one TestCase too.
+import unittest  # noqa: E402
+
+
+class TestCatchUp(unittest.TestCase):
+    pass
+
+
+for _name, _fn in list(globals().items()):
+    if _name.startswith("test_") and callable(_fn):
+        setattr(TestCatchUp, _name, staticmethod(_fn))
