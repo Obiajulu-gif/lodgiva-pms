@@ -145,7 +145,7 @@ jobs:
           assert os.path.exists(frappe.get_app_path("kamra","public","frontend","index.html")), "built SPA not shipped"
           assert os.path.exists(frappe.get_app_path("kamra","www","kamra.py")), "SPA boot page missing"
           rules = str(frappe.get_hooks("website_route_rules"))
-          assert "/kamra/<path:app_path>" in rules, "/kamra route rule missing"
+          assert "/lodgiva/<path:app_path>" in rules, "/lodgiva route rule missing"
           print("FRESH-INSTALL CHECKS PASSED")
           PY
           printf 'exec(open("/tmp/fresh_check.py").read())\nexit\n' \
@@ -205,6 +205,7 @@ jobs:
           bench new-site test.localhost --mariadb-user-host-login-scope='%'             --db-root-password root --admin-password admin --install-app kamra
           cat > /tmp/seed.py <<'PY'
           import frappe, kamra.api
+          frappe.local.lang = frappe.local.lang or "en"
           from frappe.utils import add_days, nowdate
           kamra.api.setup_property(payload={"property": {"property_name": "Upgrade Hotel", "city": "Lagos"},
               "room_types": [{"code": "STD", "name": "Standard", "base_price": 40000}],

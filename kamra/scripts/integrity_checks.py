@@ -31,7 +31,7 @@ def _fixture() -> str:
 			"property": {"property_name": PROP, "city": "Lagos", "country": "Nigeria", "currency": "NGN"},
 			"room_types": [{"code": "STD", "name": "Standard", "base_price": 40000, "adults": 2, "tax_percent": 7.5}],
 			"rooms": [{"room_type_code": "STD", "numbers": ["901", "902", "903"]}]})
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: frappe-manual-commit -- disposable-site concurrency check; threads must see committed rows
 	return frappe.get_all("Room Type", filters={"property": PROP}, pluck="name")[0]
 
 
@@ -41,14 +41,14 @@ def _threads(n: int, fn) -> list:
 	def run(i):
 		frappe.init(site=site)
 		frappe.connect()
-		frappe.set_user("Administrator")
+		frappe.set_user("Administrator")  # nosemgrep: frappe-setuser -- offline check on a disposable site
 		frappe.db.sql("select 1")  # snapshot taken before the race, like a real request
 		barrier.wait()
 		try:
 			for _ in range(6):  # what a client does with a lock-conflict error
 				try:
 					out.append(("ok", fn(i)))
-					frappe.db.commit()
+					frappe.db.commit()  # nosemgrep: frappe-manual-commit -- disposable-site concurrency check; threads must see committed rows
 					break
 				except frappe.QueryDeadlockError:
 					frappe.db.rollback()
@@ -63,7 +63,7 @@ def _threads(n: int, fn) -> list:
 	ts = [threading.Thread(target=run, args=(i,)) for i in range(n)]
 	[t.start() for t in ts]
 	[t.join() for t in ts]
-	frappe.db.commit()  # end our snapshot so the threads' commits are visible
+	frappe.db.commit()  # nosemgrep: frappe-manual-commit -- disposable-site concurrency check; threads must see committed rows
 	return out
 
 
@@ -77,7 +77,7 @@ def last_room_race(rt: str, offset: int, assign_room: int) -> None:
 	for i in range(rooms - 1):
 		kamra.api.create_booking(property=PROP, room_type=rt, check_in_date=d1, check_out_date=d2,
 		                         guest_name=f"Filler {offset}-{i}", phone="+2348000000001")
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: frappe-manual-commit -- disposable-site concurrency check; threads must see committed rows
 	out = _threads(6, lambda i: kamra.api.create_booking(
 		property=PROP, room_type=rt, check_in_date=d1, check_out_date=d2,
 		guest_name=f"Racer {offset}-{i}", phone="+2348000000002", assign_room=assign_room)["reservation"])
@@ -98,7 +98,7 @@ def payment_retries(rt: str) -> None:
 	                               guest_name="Payment Retry", phone="+2348000000003")["reservation"]
 	kamra.api.check_in(res)
 	folio = frappe.db.get_value("Folio", {"reservation": res, "folio_type": "Guest"})
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: frappe-manual-commit -- disposable-site concurrency check; threads must see committed rows
 	ref = f"{folio}-ci{frappe.generate_hash(length=6)}"
 	out = _threads(6, lambda i: post_link_payment(folio, 25000, ref))
 	rows = frappe.db.sql("select name from `tabFolio Payment` where parent=%s and reference=%s", (folio, ref))
@@ -136,7 +136,7 @@ def audit_resume() -> None:
 	res = kamra.api.create_booking(property=PROP, room_type=rt, check_in_date=d, check_out_date=add_days(d, 2),
 	                               guest_name="Audit Resume Guest", phone="+2348000000005")["reservation"]
 	kamra.api.check_in(res)  # in house across the night being audited
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: frappe-manual-commit -- disposable-site concurrency check; threads must see committed rows
 	real = F.post_room_night
 
 	def crash(res, date, folios=None):
@@ -146,7 +146,7 @@ def audit_resume() -> None:
 	tomorrow = lambda prop=None: str(add_days(d, 1))  # noqa: E731
 	with patch.object(BD, "property_today", tomorrow), patch.object(F, "post_room_night", crash):
 		F.nightly_audit_all_properties()
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: frappe-manual-commit -- disposable-site concurrency check; threads must see committed rows
 	charged = lambda: frappe.db.sql("""select count(*) from `tabFolio Charge` fc join tabFolio f on f.name=fc.parent
 	          where f.property=%s and fc.charge_type='Room' and fc.posting_date=%s""", (PROP, d))[0][0]  # noqa: E731
 	after_crash = (charged(), frappe.db.count("Night Audit Run", {"property": PROP, "business_date": d}),
@@ -154,7 +154,7 @@ def audit_resume() -> None:
 	with patch.object(BD, "property_today", tomorrow):
 		F.nightly_audit_all_properties()
 		F.nightly_audit_all_properties()
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: frappe-manual-commit -- disposable-site concurrency check; threads must see committed rows
 	after = (charged(), frappe.db.count("Night Audit Run", {"property": PROP, "business_date": d}),
 	         str(BD.get_business_date(PROP)))
 	check("audit crash leaves nothing half-posted", after_crash == (0, 0, d), str(after_crash))
@@ -202,12 +202,14 @@ def corrections_and_tax(rt: str) -> None:
 		refused = True
 	check("tax change leaves an issued invoice intact", before == after and refused,
 	      f"total {before[-1]} -> {after[-1]}, late charge refused={refused}")
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: frappe-manual-commit -- disposable-site concurrency check; threads must see committed rows
 
 
 def execute():
 	results.clear()
-	frappe.set_user("Administrator")
+	# bench console sets no language; Frappe's date formatting then crashes
+	frappe.local.lang = getattr(frappe.local, "lang", None) or "en"
+	frappe.set_user("Administrator")  # nosemgrep: frappe-setuser -- offline check on a disposable site
 	from unittest.mock import patch
 
 	rt = _fixture()
