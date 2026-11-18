@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { login } from "../lib/api"
 import { asset } from "../lib/asset"
 import { Button } from "../components/ui/button"
-import { getSiteInfo } from "../lib/siteInfo"
+import { getSiteInfo, type DemoAccount } from "../lib/siteInfo"
 import { LANGS, getLang, setLang, type Lang } from "../lib/dir"
 import { useT } from "../lib/i18n"
 
@@ -11,15 +11,6 @@ const inputCls =
   "w-full rounded border border-[#E2E8F0] bg-[#ffffff] px-3 py-2 text-sm " +
   "text-[#191c1e] placeholder:text-[#6f7a71] " +
   "focus:outline-2 focus:outline-offset-1 focus:outline-[#1E7B4F]"
-
-const DEMO_ACCOUNTS = [
-  { label: "System Admin", usr: "admin@kamra.local", pwd: "KamraAdmin1!" },
-  { label: "Hotel Admin (GM)", usr: "gm@kamra.local", pwd: "KamraGM1!" },
-  { label: "Front Desk", usr: "frontdesk@kamra.local", pwd: "KamraDesk1!" },
-  { label: "Revenue", usr: "revenue@kamra.local", pwd: "KamraRev1!" },
-  { label: "Finance", usr: "finance@kamra.local", pwd: "KamraFin1!" },
-  { label: "Housekeeping", usr: "hk@kamra.local", pwd: "KamraHK1!" },
-]
 
 export default function Login(props: { onSuccess: () => void }) {
   const { t, lang } = useT()
@@ -29,6 +20,8 @@ export default function Login(props: { onSuccess: () => void }) {
   const [busy, setBusy] = useState(false)
   // Demo accounts only exist on the seeded demo site; hide them elsewhere.
   const [demoMode, setDemoMode] = useState(false)
+  // Sent by the server only on the demo site; never compiled into the bundle.
+  const [demoAccounts, setDemoAccounts] = useState<DemoAccount[]>([])
   const [version, setVersion] = useState<string | null>(null)
   const [langState, setLangState] = useState<Lang>(lang || getLang())
 
@@ -39,6 +32,7 @@ export default function Login(props: { onSuccess: () => void }) {
   useEffect(() => {
     getSiteInfo().then((info) => {
       setDemoMode(Boolean(info.demo_mode))
+      setDemoAccounts(info.demo_accounts ?? [])
       setVersion(info.version ?? null)
     })
   }, [])
@@ -165,7 +159,7 @@ export default function Login(props: { onSuccess: () => void }) {
             {t("Demo accounts - one tap to try each role")}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {DEMO_ACCOUNTS.map((a) => (
+            {demoAccounts.map((a) => (
               <button
                 key={a.usr}
                 disabled={busy}
