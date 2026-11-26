@@ -72,6 +72,16 @@ Lodgiva PMS is AGPL-3.0, like Kamra. If you serve a modified version over a
 network, you must offer its users the corresponding source. That's why this
 repository is public, and why the booking page links to it.
 
+### Releases and CI
+
+Lodgiva does not publish Kamra's releases. A server is built from the exact
+commits pinned in `deploy/oracle/release.lock` in
+[Obiajulu-gif/lodgiva](https://github.com/Obiajulu-gif/lodgiva), so this
+repository keeps only CI (`ci.yml`, `linters.yml`). Kamra's release-please,
+release, nightly and VPS-doctor workflows were removed: they published to
+Kamra's image registry, deployed kamrapms.com hosts, and expected a
+`develop` branch this fork does not have.
+
 ---
 
 ## Upstream: Kamra PMS
